@@ -1,0 +1,71 @@
+import * as THREE from "three";
+import simulationVertexShader from "./shaders/simulation/vertex.glsl";
+import simulationFragmentShader from "./shaders/simulation/fragment.glsl";
+
+const getRandomDataBox = (width, height) => {
+  // we need to create a vec4 since we're passing the positions to the fragment shader
+  // data textures need to have 4 components, R, G, B, and A
+  const length = width * height * 4;
+  const data = new Float32Array(length);
+  for (let i = 0; i < length; i++) {
+    const stride = i * 4;
+
+    data[stride] = (Math.random() - 0.5) * 1.0;
+    data[stride + 1] = (Math.random() - 0.5) * 1.0;
+    data[stride + 2] = (Math.random() - 0.5) * 1.0;
+    data[stride + 3] = 1.0; // this value will not have any impact
+  }
+  return data;
+};
+
+const getRandomDataSphere = (width, height) => {
+  // we need to create a vec4 since we're passing the positions to the fragment shader
+  // data textures need to have 4 components, R, G, B, and A
+  const length = width * height * 4;
+  const data = new Float32Array(length);
+  for (let i = 0; i < length; i++) {
+    const stride = i * 4;
+    const distance = Math.sqrt(Math.random()) * 3.0;
+    const theta = THREE.MathUtils.randFloatSpread(360);
+    const phi = THREE.MathUtils.randFloatSpread(360);
+
+    data[stride] = distance * Math.sin(theta) * Math.cos(phi);
+    data[stride + 1] = distance * Math.sin(theta) * Math.sin(phi);
+    data[stride + 2] = distance * Math.cos(theta);
+    data[stride + 3] = 1.0; // this value will not have any impact
+  }
+  return data;
+};
+
+export default class SimulationMaterial extends THREE.ShaderMaterial {
+  constructor(size) {
+    const positionsTextureA = new THREE.DataTexture(
+      getRandomDataBox(size, size),
+      size,
+      size,
+      THREE.RGBAFormat,
+      THREE.FloatType
+    );
+    positionsTextureA.needsUpdate = true;
+
+    const positionsTextureB = new THREE.DataTexture(
+      getRandomDataSphere(size, size),
+      size,
+      size,
+      THREE.RGBAFormat,
+      THREE.FloatType
+    );
+    positionsTextureB.needsUpdate = true;
+
+    super({
+      uniforms: {
+        positionsA: { value: positionsTextureA },
+        positionsB: { value: positionsTextureB },
+        uFrequency: { value: 0.2 },
+        uTime: { value: 0 },
+      },
+      vertexShader: simulationVertexShader,
+      fragmentShader: simulationFragmentShader,
+    });
+  }
+}
